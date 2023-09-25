@@ -42,7 +42,13 @@ export function DiscoverPageProvider({ getService, getPageObjects }: FtrProvider
   const defaultFindTimeout = config.get('timeouts.find');
   const opensearchChart = getService('opensearchChart');
   const docTable = getService('docTable');
+  const dataGridTable = getService('dataGrid');
+  const comboBox = getService('comboBox');
 
+  /*
+   * This page is left unchanged since some of the other selenium tests, ex. dashboard tests, visualization tests
+   * are still using some of the below helper functions.
+   */
   class DiscoverPage {
     public async getChartTimespan() {
       const el = await find.byCssSelector('[data-test-subj="discoverIntervalDateRange"]');
@@ -100,7 +106,7 @@ export function DiscoverPageProvider({ getService, getPageObjects }: FtrProvider
     }
 
     public async getColumnHeaders() {
-      return await docTable.getHeaderFields('embeddedSavedSearchDocTable');
+      return await dataGridTable.getHeaderFields();
     }
 
     public async openLoadSavedSearchPanel() {
@@ -280,6 +286,10 @@ export function DiscoverPageProvider({ getService, getPageObjects }: FtrProvider
       return await testSubjects.click(`field-${field}`);
     }
 
+    public async clickFieldListItemDetails(field: string) {
+      return await testSubjects.click(`field-${field}-showDetails`);
+    }
+
     public async clickFieldSort(field: string) {
       return await testSubjects.click(`docTableHeaderFieldSort_${field}`);
     }
@@ -340,18 +350,14 @@ export function DiscoverPageProvider({ getService, getPageObjects }: FtrProvider
       await header.waitUntilLoadingHasFinished();
     }
 
-    public async selectIndexPattern(indexPattern: string) {
-      await testSubjects.click('indexPattern-switch-link');
-      await find.setValue('[data-test-subj="indexPattern-switcher"] input', indexPattern);
-      await find.clickByCssSelector(
-        `[data-test-subj="indexPattern-switcher"] [title="${indexPattern}"]`
-      );
+    public async selectIndexPattern(indexPatternTitle: string) {
+      const dataExplorerComboBoxElement = await testSubjects.find('dataExplorerDSSelect');
+      await comboBox.setElement(dataExplorerComboBoxElement, indexPatternTitle);
       await header.waitUntilLoadingHasFinished();
     }
 
-    public async removeHeaderColumn(name: string) {
-      await testSubjects.moveMouseTo(`docTableHeader-${name}`);
-      await testSubjects.click(`docTableRemoveHeader-${name}`);
+    public async removeHeaderColumn(columnName: string) {
+      await dataGridTable.clickRemoveColumn(columnName);
     }
 
     public async openSidebarFieldFilter() {

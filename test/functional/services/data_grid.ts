@@ -37,8 +37,11 @@ interface TabbedGridData {
 
 export function DataGridProvider({ getService }: FtrProviderContext) {
   const find = getService('find');
+  const testSubjects = getService('testSubjects');
 
   class DataGrid {
+    // This test no longer works in the new data explorer data grid table
+    // since each data grid table cell is now rendered differently
     async getDataGridTableData(): Promise<TabbedGridData> {
       const table = await find.byCssSelector('.euiDataGrid');
       const $ = await table.parseDomContent();
@@ -65,6 +68,53 @@ export function DataGridProvider({ getService }: FtrProviderContext) {
         columns,
         rows,
       };
+    }
+
+    /**
+     * Retrieves the header fields of the data grid.
+     *
+     * @returns {Promise<string[]>} An array containing names of the header fields.
+     */
+    async getHeaderFields(): Promise<string[]> {
+      const headerNames = [];
+      // Locate header cells, ignoring the inspect document button column
+      const headerCells = await find.allByCssSelector(
+        '.euiDataGridHeaderCell__button > .euiDataGridHeaderCell__content'
+      );
+
+      for (const cell of headerCells) {
+        const headerName = await cell.getAttribute('textContent');
+        headerNames.push(headerName.trim());
+      }
+      return Promise.resolve(headerNames);
+    }
+
+    /**
+     * Clicks to remove a specified column from the data grid.
+     *
+     * @param {string} columnName - The name of the column to be removed.
+     */
+    async clickRemoveColumn(columnName: string) {
+      await testSubjects.click(`dataGridHeaderCell-${columnName}`);
+      await find.clickByButtonText('Remove column');
+    }
+
+    async getDataGridTableColumn(selector: string): Promise<string[]> {
+      const table = await find.byCssSelector('.euiDataGrid');
+      const $ = await table.parseDomContent();
+
+      const columnValues: string[] = [];
+      $.findTestSubjects('dataGridRowCell')
+        .toArray()
+        .forEach((cell) => {
+          const cCell = $(cell);
+          if (cCell.hasClass(`euiDataGridRowCell--${selector}`)) {
+            // The column structure is very nested to get the actual text
+            columnValues.push(cCell.children().children().children().children().text());
+          }
+        });
+
+      return columnValues;
     }
   }
 
